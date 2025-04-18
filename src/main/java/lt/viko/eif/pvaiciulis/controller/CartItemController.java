@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
 import lt.viko.eif.pvaiciulis.dto.request.CartItemRequest;
 import lt.viko.eif.pvaiciulis.dto.response.CartItemResponse;
+import lt.viko.eif.pvaiciulis.dto.response.CartProductResponse;
+import lt.viko.eif.pvaiciulis.dto.response.ProductResponse;
 import lt.viko.eif.pvaiciulis.model.UserModel.User;
 import lt.viko.eif.pvaiciulis.service.AuthenticationService;
 import lt.viko.eif.pvaiciulis.service.CartItemService;
@@ -42,6 +44,13 @@ public class CartItemController {
         return new ResponseEntity<>(cartItemsResponse, HttpStatus.OK);
     }
 
+    @GetMapping("/products")
+    public ResponseEntity<List<CartProductResponse>> getCartProducts(Authentication authentication) {
+        User user = authenticationService.getCurrentUser(authentication);
+        List<CartProductResponse> cartProductsResponse = cartItemService.getCartProductsForUser(user.getId());
+        return new ResponseEntity<>(cartProductsResponse, HttpStatus.OK);
+    }
+
     /**
      * Adds a new cart item for the authenticated user.
      */
@@ -53,6 +62,7 @@ public class CartItemController {
     @PostMapping
     public ResponseEntity<CartItemResponse> addCartItem(@RequestBody CartItemRequest request, Authentication authentication) {
         User user = authenticationService.getCurrentUser(authentication);
+        System.out.println(request);
         CartItemResponse response = cartItemService.createCartItem(user.getId(), request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -65,7 +75,7 @@ public class CartItemController {
             @ApiResponse(responseCode = "200", description = "Successfully updated cart item"),
             @ApiResponse(responseCode = "404", description = "Cart item not found")
     })
-    @PutMapping("")
+    @PutMapping()
     public ResponseEntity<CartItemResponse> updateCartItem(
             @RequestBody CartItemRequest request,
             Authentication authentication) {

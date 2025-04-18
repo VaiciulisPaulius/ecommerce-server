@@ -13,10 +13,8 @@ import lt.viko.eif.pvaiciulis.dto.response.RegisterResponse;
 import lt.viko.eif.pvaiciulis.service.AuthenticationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * Controller class for handling authentication operations.
@@ -82,4 +80,25 @@ public class AuthenticationController {
     ){
         return ResponseEntity.ok(service.authenticate(request));
     }
+
+    /**
+     * Endpoint to check if the user's token is still valid (not expired).
+     *
+     * @param authentication The authentication object injected by Spring Security.
+     * @return ResponseEntity with status 200 (OK) if token is valid, or 401 (Unauthorized) if not.
+     */
+    @Operation(summary = "Check if the user's token is valid")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Token is valid"),
+            @ApiResponse(responseCode = "401", description = "Token is expired or invalid")
+    })
+    @GetMapping("/check-token")
+    public ResponseEntity<String> checkTokenValidity(Authentication authentication) {
+        if (authentication != null && authentication.isAuthenticated()) {
+            return ResponseEntity.ok("Token is valid");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token is invalid or expired");
+        }
+    }
+
 }

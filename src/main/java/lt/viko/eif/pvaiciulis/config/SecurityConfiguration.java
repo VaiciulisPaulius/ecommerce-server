@@ -5,6 +5,7 @@ import lt.viko.eif.pvaiciulis.security.CustomAuthenticationEntryPoint;
 import lt.viko.eif.pvaiciulis.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -28,6 +29,8 @@ public class SecurityConfiguration {
     private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
     private static final String[] WHITE_LIST_URL = {"/api/v1/auth/**",
+            "/api/v1/products/",
+            "/uploads/images/**",
             "/v2/api-docs",
             "/v3/api-docs",
             "/v3/api-docs/**",
@@ -42,8 +45,11 @@ public class SecurityConfiguration {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(req -> req.requestMatchers(WHITE_LIST_URL).permitAll()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(req -> req
+                        //.requestMatchers(HttpMethod.GET, "/api/v1/products/**").permitAll() // ✅ Allow GET /products
+                        .requestMatchers(WHITE_LIST_URL).permitAll()
+                        .anyRequest().authenticated()
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
@@ -54,4 +60,5 @@ public class SecurityConfiguration {
         return http.build();
     }
 }
+
 

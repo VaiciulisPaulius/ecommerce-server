@@ -39,7 +39,7 @@ public class UserService {
         updatedUser.setFirstName(user.getFirstName());
         updatedUser.setLastName(user.getLastName());
         updatedUser.setEmail(user.getEmail());
-        updatedUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        updatedUser.setPhoneNumber(user.getPhoneNumber());
 
         return userRepository.save(updatedUser);
     }

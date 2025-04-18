@@ -1,5 +1,6 @@
 package lt.viko.eif.pvaiciulis.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -7,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lt.viko.eif.pvaiciulis.dto.request.ProductRequest;
 import lt.viko.eif.pvaiciulis.dto.response.ProductResponse;
+import lt.viko.eif.pvaiciulis.model.ProductModel.Product;
 import lt.viko.eif.pvaiciulis.model.UserModel.Role;
 import lt.viko.eif.pvaiciulis.repository.ProductRepository;
 import lt.viko.eif.pvaiciulis.service.ProductService;
@@ -15,6 +17,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.util.List;
 
 /**
  * Controller for managing products. Restricted to users with the role WORKER.
@@ -27,6 +33,18 @@ public class ProductController {
     private final ProductService productService;
     private final ProductRepository productRepository;
 
+    @GetMapping
+    public ResponseEntity<List<ProductResponse>> getProducts() {
+        List<ProductResponse> products = productService.getAllProducts();
+        return ResponseEntity.ok(products);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getProduct(@PathVariable Integer id) {
+        ProductResponse product = productService.getProduct(id);
+        return ResponseEntity.ok(product);
+    }
+
     // Create a new product, only accessible by WORKER role
     @Operation(summary = "Create a new product")
     @ApiResponses(value = {
@@ -37,8 +55,10 @@ public class ProductController {
     })
     @PostMapping
     public ResponseEntity<ProductResponse> createProduct(
-            @RequestBody ProductRequest productRequest,
-            Authentication authentication) {
+            @RequestPart("product") String productJson,
+            Authentication authentication,
+            @RequestPart("image") MultipartFile image
+    ) {
 
         // Get the authenticated user's role
         if (authentication == null || authentication.getAuthorities().stream()
@@ -49,12 +69,20 @@ public class ProductController {
                             .build());
         }
 
-        ProductResponse result = productService.createProduct(productRequest);
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            ProductRequest productRequest = objectMapper.readValue(productJson, ProductRequest.class);
 
-        if (!result.isSuccess()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+            ProductResponse result = productService.createProduct(productRequest, image);
+
+            if (!result.isSuccess()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+            }
+            return ResponseEntity.status(HttpStatus.CREATED).body(result);
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+        catch(IOException ex) {
+            throw new RuntimeException("Something went wrong.", ex);
+        }
     }
 
     // Update a product, only accessible by WORKER role

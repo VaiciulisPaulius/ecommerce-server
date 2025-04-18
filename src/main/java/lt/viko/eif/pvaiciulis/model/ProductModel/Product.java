@@ -27,4 +27,7 @@ public class Product {
 
     @Enumerated(EnumType.STRING)
     private Category category;
+
+    @Column(nullable = false)
+    private String imageUrl;
 }

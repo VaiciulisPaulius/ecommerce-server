@@ -5,11 +5,19 @@ import lt.viko.eif.pvaiciulis.dto.response.ProductResponse;
 import lt.viko.eif.pvaiciulis.exception.ResourceNotFoundException;
 import lt.viko.eif.pvaiciulis.model.ProductModel.Category;
 import lt.viko.eif.pvaiciulis.model.ProductModel.Product;
+import lt.viko.eif.pvaiciulis.model.UserModel.Address;
 import lt.viko.eif.pvaiciulis.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Service for managing products.
@@ -23,8 +31,37 @@ public class ProductService {
     /**
      * Retrieves all products.
      */
-    public List<Product> getAllProducts() {
-        return repository.findAll();
+    public List<ProductResponse> getAllProducts() {
+        List<Product> products = repository.findAll();
+
+        List<ProductResponse> productResponses = new ArrayList<>();
+        for (Product product : products) {
+            ProductResponse productResponse = new ProductResponse();
+            productResponse.setId(product.getId());
+            productResponse.setName(product.getName());
+            productResponse.setDescription(product.getDescription());
+            productResponse.setStock(product.getStock());
+            productResponse.setPrice(product.getPrice());
+            productResponse.setImageUrl(product.getImageUrl());
+            productResponses.add(productResponse);
+        }
+        return productResponses;
+    }
+    public ProductResponse getProduct(int id) {
+        Product product = repository.findById(id).get();
+
+        var productResponse = ProductResponse.builder()
+                .name(product.getName())
+                .id(product.getId())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stock(product.getStock())
+                .category(product.getCategory().toString())
+                .imageUrl(product.getImageUrl())
+                .success(true)
+                .build();
+
+        return productResponse;
     }
 
     /**
@@ -49,32 +86,32 @@ public class ProductService {
     /**
      * Creates a new product.
      */
-    public ProductResponse createProduct(ProductRequest request) {
-        if(request.getName().isBlank()){
+    public ProductResponse createProduct(ProductRequest request, MultipartFile image) {
+        if(request.getDescription() == null || request.getName().isBlank()){
             return ProductResponse.builder()
                     .success(false)
                     .error("Product name is empty")
                     .build();
         }
-        if(request.getDescription().isBlank()){
+        if(request.getDescription() == null || request.getDescription().isBlank()){
             return ProductResponse.builder()
                     .success(false)
                     .error("Product description is empty")
                     .build();
         }
-        if(request.getPrice().toString().isBlank()){
+        if(request.getPrice() == null || request.getPrice().toString().isBlank()){
             return ProductResponse.builder()
                     .success(false)
                     .error("Product price is empty")
                     .build();
         }
-        if(request.getCategory().isBlank()){
+        if(request.getCategory() == null || request.getCategory().isBlank()){
             return ProductResponse.builder()
                     .success(false)
                     .error("Category is empty")
                     .build();
         }
-        if(request.getStock().toString().isBlank()){
+        if(request.getStock() == null || request.getStock().toString().isBlank()){
             return ProductResponse.builder()
                     .success(false)
                     .error("Product stock is empty")
@@ -88,6 +125,20 @@ public class ProductService {
         .stock(request.getStock())
         .category(Category.valueOf(request.getCategory()))
         .build();
+
+        try {
+            String filename = UUID.randomUUID() + "_" + image.getOriginalFilename();
+            Path imagePath = Paths.get("uploads/images/" + filename);
+            Files.createDirectories(imagePath.getParent());
+            Files.write(imagePath, image.getBytes());
+
+            // Set image URL/path in product
+            product.setImageUrl("/images/" + filename); // or full URL if hosted
+        }
+        catch(IOException e) {
+            throw new RuntimeException("Failed to store image file", e);
+        }
+
         repository.save(product);
 
         return ProductResponse.builder()
@@ -96,6 +147,7 @@ public class ProductService {
                 .price(request.getPrice())
                 .stock(request.getStock())
                 .category(request.getCategory())
+                .imageUrl(product.getImageUrl())
                 .success(true)
                 .build();
     }

@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lt.viko.eif.pvaiciulis.model.ProductModel.Product;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Builder
@@ -16,6 +18,7 @@ public class ProductResponse {
     private Double price;
     private Integer stock;
     private String category;
+    private String imageUrl;
 
     private boolean success;
     private String error;

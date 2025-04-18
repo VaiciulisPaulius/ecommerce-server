@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
+import lt.viko.eif.pvaiciulis.dto.response.UserResponse;
 import lt.viko.eif.pvaiciulis.exception.ResourceNotFoundException;
 import lt.viko.eif.pvaiciulis.model.UserModel.Role;
 import lt.viko.eif.pvaiciulis.model.UserModel.User;
@@ -46,7 +47,7 @@ public class UserController {
             @ApiResponse(responseCode = "404", description = "User not found")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<EntityModel<User>> getUserById(@PathVariable Integer id, Authentication authentication) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Integer id, Authentication authentication) {
         Integer userId = Integer.parseInt(authentication.getName());
 
         User admin = userRepository.findById(userId)
@@ -59,12 +60,18 @@ public class UserController {
 
         user.setPassword("");
 
-        EntityModel<User> resource = userModelAssembler.toModel(user);
+        UserResponse response = UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .phoneNumber(user.getPhoneNumber())
+                .build();
 
-        return new ResponseEntity<>(resource, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
     @GetMapping()
-    public ResponseEntity<EntityModel<User>> getUser(Authentication authentication) {
+    public ResponseEntity<UserResponse> getUser(Authentication authentication) {
         Integer userId = Integer.parseInt(authentication.getName());
 
         User user = userRepository.findById(userId)
@@ -72,9 +79,16 @@ public class UserController {
 
         user.setPassword("");
 
-        EntityModel<User> resource = userModelAssembler.toModel(user);
+        UserResponse response = UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                //.address(user.getAddress())
+                .phoneNumber(user.getPhoneNumber())
+                .build();
 
-        return new ResponseEntity<>(resource, HttpStatus.OK);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
     @PutMapping()
     public ResponseEntity<User> updateUser(@RequestBody User user, Authentication authentication) {

@@ -3,6 +3,8 @@ package lt.viko.eif.pvaiciulis.service;
 import lombok.RequiredArgsConstructor;
 import lt.viko.eif.pvaiciulis.dto.request.CartItemRequest;
 import lt.viko.eif.pvaiciulis.dto.response.CartItemResponse;
+import lt.viko.eif.pvaiciulis.dto.response.CartProductResponse;
+import lt.viko.eif.pvaiciulis.dto.response.ProductResponse;
 import lt.viko.eif.pvaiciulis.exception.ResourceNotFoundException;
 import lt.viko.eif.pvaiciulis.model.CartModel.Cart;
 import lt.viko.eif.pvaiciulis.model.CartModel.CartItem;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,16 +41,51 @@ public class CartItemService {
 
         return cartItemResponseList;
     }
+    public List<CartProductResponse> getCartProductsForUser(Integer userId) {
+        List<CartItem> cartItemList = cartItemRepository.findAllByCartUserId(userId);
+
+        List<CartProductResponse> cartProductResponses = new ArrayList<>();
+
+        for (CartItem cartItem : cartItemList) {
+            Product product = cartItem.getProduct();
+
+            ProductResponse productResponse = ProductResponse.builder()
+                    .id(product.getId())
+                    .name(product.getName())
+                    .description(product.getDescription())
+                    .price(product.getPrice())
+                    .stock(product.getStock())
+                    .category(product.getCategory().toString())
+                    .imageUrl(product.getImageUrl())
+                    .success(true)
+                    .build();
+
+            CartItemResponse cartItemResponse = CartItemResponse.builder()
+                    .cartId(cartItem.getId())
+                    .productId(productResponse.getId())
+                    .quantity(cartItem.getQuantity())
+                    .build();
+
+            CartProductResponse res = CartProductResponse.builder()
+                    .product(productResponse)
+                    .cartItem(cartItemResponse)
+                    .build();
+            cartProductResponses.add(res);
+        }
+
+        return cartProductResponses;
+    }
+
 
     public CartItemResponse createCartItem(Integer userId, CartItemRequest request) {
         try {
-            if(request.getProductId().toString().isBlank()){
+            if(request.getProductId() == null || request.getProductId().toString().isBlank()){
                 return CartItemResponse.builder()
                         .success(false)
                         .error("Product id not provided")
                         .build();
             }
-            if(request.getQuantity().toString().isBlank()){
+            if(request.getQuantity() == null || request.getQuantity().toString().isBlank()){
                 return CartItemResponse.builder()
                         .success(false)
                         .error("Quantity not provided")
@@ -62,21 +100,39 @@ public class CartItemService {
             Product product = productRepository.findById(request.getProductId())
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+            CartItem cartItem = cartItemRepository.findByCartUserIdAndProductId(userId, request.getProductId()).orElse(null);
+
+            System.out.println(cartItem == null);
+            if(cartItem != null) {
+                cartItem.setQuantity(cartItem.getQuantity() + request.getQuantity());
+
+                System.out.println(cartItem.getQuantity() + request.getQuantity());
+
+                cartItemRepository.save(cartItem);
+
+                return CartItemResponse.builder()
+                        .cartId(cart.getId())
+                        .productId(product.getId())
+                        .quantity(cartItem.getQuantity())
+                        .success(true)
+                        .build();
+            }
+
             // Create the CartItem
-            CartItem cartItem = CartItem.builder()
+            CartItem NewcartItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
                     .quantity(request.getQuantity())
                     .build();
 
             // Save the CartItem in the repository
-            cartItemRepository.save(cartItem);
+            cartItemRepository.save(NewcartItem);
 
             // Build and return the response
             return CartItemResponse.builder()
                     .cartId(cart.getId())
                     .productId(product.getId())
-                    .quantity(cartItem.getQuantity())
+                    .quantity(NewcartItem.getQuantity())
                     .success(true)
                     .build();
 
