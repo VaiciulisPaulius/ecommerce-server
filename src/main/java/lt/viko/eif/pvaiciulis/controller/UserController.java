@@ -20,6 +20,10 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Controller class that manages user-related operations.
  */
